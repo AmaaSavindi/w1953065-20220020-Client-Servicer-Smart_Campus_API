@@ -6,6 +6,7 @@ import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import uk.ac.westminster.smartcampus.resource.DiscoveryResource;
 import uk.ac.westminster.smartcampus.resource.RoomResource;
+import uk.ac.westminster.smartcampus.resource.SensorResource;
 
 @ApplicationPath("/api/v1")
 public class SmartCampusApplication extends Application {
@@ -15,6 +16,7 @@ public class SmartCampusApplication extends Application {
         Set<Class<?>> classes = new LinkedHashSet<>();
         classes.add(DiscoveryResource.class);
         classes.add(RoomResource.class);
+        classes.add(SensorResource.class);
         return classes;
     }
 }
