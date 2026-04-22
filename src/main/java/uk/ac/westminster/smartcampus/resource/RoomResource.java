@@ -18,6 +18,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import uk.ac.westminster.smartcampus.exception.RoomNotEmptyException;
 import uk.ac.westminster.smartcampus.model.Room;
 import uk.ac.westminster.smartcampus.service.CampusStore;
 
@@ -66,7 +67,7 @@ public class RoomResource {
         }
 
         if (store.roomHasSensors(roomId)) {
-            throw new WebApplicationException("Room still has linked sensors.", Response.Status.CONFLICT);
+            throw new RoomNotEmptyException("Room still has linked sensors.");
         }
 
         store.deleteRoom(roomId);

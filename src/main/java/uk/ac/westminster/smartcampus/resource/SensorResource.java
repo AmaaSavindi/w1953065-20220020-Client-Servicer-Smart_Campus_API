@@ -18,6 +18,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import uk.ac.westminster.smartcampus.exception.LinkedResourceNotFoundException;
 import uk.ac.westminster.smartcampus.model.Sensor;
 import uk.ac.westminster.smartcampus.service.CampusStore;
 
@@ -33,7 +34,7 @@ public class SensorResource {
         validateSensor(sensor);
 
         if (!store.roomExists(sensor.getRoomId().trim())) {
-            throw new WebApplicationException("Linked room does not exist.", 422);
+            throw new LinkedResourceNotFoundException("The requested roomId does not exist.");
         }
 
         Sensor sensorToStore = new Sensor();

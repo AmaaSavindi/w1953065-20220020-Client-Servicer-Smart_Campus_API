@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
@@ -16,6 +15,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import uk.ac.westminster.smartcampus.exception.SensorUnavailableException;
 import uk.ac.westminster.smartcampus.model.Sensor;
 import uk.ac.westminster.smartcampus.model.SensorReading;
 import uk.ac.westminster.smartcampus.service.CampusStore;
@@ -43,7 +43,7 @@ public class SensorReadingResource {
 
         Sensor sensor = ensureSensorExists();
         if ("MAINTENANCE".equalsIgnoreCase(sensor.getStatus())) {
-            throw new ForbiddenException("Sensor is currently unavailable for new readings.");
+            throw new SensorUnavailableException("Sensor is currently unavailable for new readings.");
         }
 
         String readingId = reading.getId() == null || reading.getId().isBlank()
