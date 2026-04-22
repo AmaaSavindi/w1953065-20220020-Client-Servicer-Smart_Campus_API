@@ -20,6 +20,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import uk.ac.westminster.smartcampus.exception.LinkedResourceNotFoundException;
 import uk.ac.westminster.smartcampus.model.Sensor;
+import uk.ac.westminster.smartcampus.model.SensorStatus;
 import uk.ac.westminster.smartcampus.service.CampusStore;
 
 @Path("/sensors")
@@ -31,7 +32,7 @@ public class SensorResource {
 
     @POST
     public Response createSensor(Sensor sensor, @Context UriInfo uriInfo) {
-        validateSensor(sensor);
+        String normalizedStatus = validateSensor(sensor);
 
         if (!store.roomExists(sensor.getRoomId().trim())) {
             throw new LinkedResourceNotFoundException("The requested roomId does not exist.");
@@ -40,7 +41,7 @@ public class SensorResource {
         Sensor sensorToStore = new Sensor();
         sensorToStore.setId(sensor.getId().trim());
         sensorToStore.setType(sensor.getType().trim());
-        sensorToStore.setStatus(sensor.getStatus().trim());
+        sensorToStore.setStatus(normalizedStatus);
         sensorToStore.setCurrentValue(sensor.getCurrentValue());
         sensorToStore.setRoomId(sensor.getRoomId().trim());
 
@@ -74,7 +75,7 @@ public class SensorResource {
         return new SensorReadingResource(sensorId);
     }
 
-    private void validateSensor(Sensor sensor) {
+    private String validateSensor(Sensor sensor) {
         if (sensor == null) {
             throw new BadRequestException("Sensor payload is required.");
         }
@@ -90,5 +91,11 @@ public class SensorResource {
         if (sensor.getRoomId() == null || sensor.getRoomId().isBlank()) {
             throw new BadRequestException("Sensor roomId is required.");
         }
+
+        String normalizedStatus = SensorStatus.normalize(sensor.getStatus());
+        if (!SensorStatus.isValid(normalizedStatus)) {
+            throw new BadRequestException("Sensor status must be ACTIVE, MAINTENANCE, or OFFLINE.");
+        }
+        return normalizedStatus;
     }
 }

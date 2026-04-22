@@ -8,8 +8,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import uk.ac.westminster.smartcampus.model.Room;
 import uk.ac.westminster.smartcampus.model.Sensor;
 import uk.ac.westminster.smartcampus.model.SensorReading;
+import uk.ac.westminster.smartcampus.model.SensorStatus;
 
 public class CampusStore {
+
+    public enum RoomRemovalResult {
+        REMOVED,
+        NOT_FOUND,
+        BLOCKED_BY_ACTIVE_SENSORS
+    }
 
     private static final CampusStore INSTANCE = new CampusStore();
 
@@ -41,12 +48,8 @@ public class CampusStore {
         return rooms.containsKey(roomId);
     }
 
-    public boolean addRoom(Room room) {
+    public synchronized boolean addRoom(Room room) {
         return rooms.putIfAbsent(room.getId(), copyRoom(room)) == null;
-    }
-
-    public boolean deleteRoom(String roomId) {
-        return rooms.remove(roomId) != null;
     }
 
     public boolean roomHasActiveSensors(String roomId) {
@@ -58,12 +61,37 @@ public class CampusStore {
         synchronized (room.getSensorIds()) {
             for (String sensorId : room.getSensorIds()) {
                 Sensor sensor = sensors.get(sensorId);
-                if (sensor != null && "ACTIVE".equalsIgnoreCase(sensor.getStatus())) {
+                if (sensor != null && SensorStatus.isActive(sensor.getStatus())) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    public synchronized RoomRemovalResult removeRoomIfNoActiveSensors(String roomId) {
+        Room room = rooms.get(roomId);
+        if (room == null) {
+            return RoomRemovalResult.NOT_FOUND;
+        }
+
+        if (roomHasActiveSensors(roomId)) {
+            return RoomRemovalResult.BLOCKED_BY_ACTIVE_SENSORS;
+        }
+
+        synchronized (room.getSensorIds()) {
+            for (String sensorId : room.getSensorIds()) {
+                sensors.computeIfPresent(sensorId, (ignored, existingSensor) -> {
+                    Sensor detachedSensor = copySensor(existingSensor);
+                    detachedSensor.setRoomId(null);
+                    return detachedSensor;
+                });
+            }
+            room.getSensorIds().clear();
+        }
+
+        rooms.remove(roomId);
+        return RoomRemovalResult.REMOVED;
     }
 
     public List<Sensor> getAllSensors() {
@@ -83,7 +111,7 @@ public class CampusStore {
         return sensors.containsKey(sensorId);
     }
 
-    public boolean addSensor(Sensor sensor) {
+    public synchronized boolean addSensor(Sensor sensor) {
         Sensor sensorCopy = copySensor(sensor);
         Sensor existing = sensors.putIfAbsent(sensorCopy.getId(), sensorCopy);
         if (existing != null) {
@@ -132,9 +160,8 @@ public class CampusStore {
         return false;
     }
 
-    public boolean addReading(String sensorId, SensorReading reading) {
-        Sensor sensor = sensors.get(sensorId);
-        if (sensor == null) {
+    public synchronized boolean addReading(String sensorId, SensorReading reading) {
+        if (!sensors.containsKey(sensorId)) {
             return false;
         }
 
@@ -144,11 +171,16 @@ public class CampusStore {
         synchronized (sensorReadings) {
             sensorReadings.add(copyReading(reading));
         }
-        sensor.setCurrentValue(reading.getValue());
+
+        sensors.computeIfPresent(sensorId, (ignored, existingSensor) -> {
+            Sensor updatedSensor = copySensor(existingSensor);
+            updatedSensor.setCurrentValue(reading.getValue());
+            return updatedSensor;
+        });
         return true;
     }
 
-    public void clear() {
+    public synchronized void clear() {
         rooms.clear();
         sensors.clear();
         readings.clear();

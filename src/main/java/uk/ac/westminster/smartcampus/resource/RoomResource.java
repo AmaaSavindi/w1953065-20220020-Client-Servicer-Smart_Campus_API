@@ -62,15 +62,13 @@ public class RoomResource {
     @DELETE
     @Path("/{roomId}")
     public Response deleteRoom(@PathParam("roomId") String roomId) {
-        if (!store.roomExists(roomId)) {
+        CampusStore.RoomRemovalResult result = store.removeRoomIfNoActiveSensors(roomId);
+        if (result == CampusStore.RoomRemovalResult.NOT_FOUND) {
             throw new NotFoundException("Room not found.");
         }
-
-        if (store.roomHasActiveSensors(roomId)) {
+        if (result == CampusStore.RoomRemovalResult.BLOCKED_BY_ACTIVE_SENSORS) {
             throw new RoomNotEmptyException("Room still has active sensors.");
         }
-
-        store.deleteRoom(roomId);
         return Response.noContent().build();
     }
 

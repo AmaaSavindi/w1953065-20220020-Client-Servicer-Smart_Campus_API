@@ -18,6 +18,7 @@ import javax.ws.rs.core.UriInfo;
 import uk.ac.westminster.smartcampus.exception.SensorUnavailableException;
 import uk.ac.westminster.smartcampus.model.Sensor;
 import uk.ac.westminster.smartcampus.model.SensorReading;
+import uk.ac.westminster.smartcampus.model.SensorStatus;
 import uk.ac.westminster.smartcampus.service.CampusStore;
 
 @Produces(MediaType.APPLICATION_JSON)
@@ -42,7 +43,7 @@ public class SensorReadingResource {
         validateReading(reading);
 
         Sensor sensor = ensureSensorExists();
-        if ("MAINTENANCE".equalsIgnoreCase(sensor.getStatus())) {
+        if (SensorStatus.isMaintenance(sensor.getStatus())) {
             throw new SensorUnavailableException("Sensor is currently unavailable for new readings.");
         }
 

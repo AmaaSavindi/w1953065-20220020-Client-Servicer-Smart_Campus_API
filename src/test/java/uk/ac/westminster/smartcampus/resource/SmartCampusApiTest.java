@@ -87,6 +87,7 @@ class SmartCampusApiTest extends JerseyTest {
         });
 
         assertEquals(409, conflictResponse.getStatus());
+        assertEquals(409, errorBody.get("status"));
         assertEquals("Conflict", errorBody.get("error"));
 
         store.addRoom(new Room("ENG-102", "Engineering Seminar Room", 25, List.of()));
@@ -104,6 +105,7 @@ class SmartCampusApiTest extends JerseyTest {
 
         assertEquals(204, deleteResponse.getStatus());
         assertFalse(store.roomExists("ENG-103"));
+        assertEquals(null, store.getSensor("TEMP-003").orElseThrow().getRoomId());
     }
 
     @Test
@@ -116,7 +118,23 @@ class SmartCampusApiTest extends JerseyTest {
         });
 
         assertEquals(422, response.getStatus());
+        assertEquals(422, errorBody.get("status"));
         assertEquals("Unprocessable Entity", errorBody.get("error"));
+    }
+
+    @Test
+    void sensorCreateRejectsInvalidStatusWithStructuredBadRequest() {
+        store.addRoom(new Room("SCI-202", "Science Seminar Room", 20, List.of()));
+        Sensor sensor = new Sensor("HUM-001", "Humidity", "BROKEN", 45.5, "SCI-202");
+
+        Response response = target("sensors").request()
+                .post(Entity.entity(sensor, MediaType.APPLICATION_JSON));
+        Map<String, Object> errorBody = response.readEntity(new GenericType<>() {
+        });
+
+        assertEquals(400, response.getStatus());
+        assertEquals(400, errorBody.get("status"));
+        assertEquals("Bad Request", errorBody.get("error"));
     }
 
     @Test
@@ -168,6 +186,7 @@ class SmartCampusApiTest extends JerseyTest {
         });
 
         assertEquals(403, response.getStatus());
+        assertEquals(403, errorBody.get("status"));
         assertEquals("Forbidden", errorBody.get("error"));
     }
 
@@ -180,6 +199,29 @@ class SmartCampusApiTest extends JerseyTest {
         assertTrue(body.contains("Internal Server Error"));
         assertFalse(body.contains("RuntimeException"));
         assertFalse(body.contains("stackTrace"));
+    }
+
+    @Test
+    void missingRoomReturnsStructuredNotFoundBody() {
+        Response response = target("rooms/UNKNOWN").request().get();
+        Map<String, Object> errorBody = response.readEntity(new GenericType<>() {
+        });
+
+        assertEquals(404, response.getStatus());
+        assertEquals(404, errorBody.get("status"));
+        assertEquals("Not Found", errorBody.get("error"));
+    }
+
+    @Test
+    void unsupportedMediaTypeReturnsStructuredJsonError() {
+        Response response = target("sensors").request()
+                .post(Entity.entity("plain-text", MediaType.TEXT_PLAIN_TYPE));
+        Map<String, Object> errorBody = response.readEntity(new GenericType<>() {
+        });
+
+        assertEquals(415, response.getStatus());
+        assertEquals(415, errorBody.get("status"));
+        assertEquals("Unsupported Media Type", errorBody.get("error"));
     }
 
     @Path("/boom")
