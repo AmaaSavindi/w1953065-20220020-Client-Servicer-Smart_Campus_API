@@ -78,7 +78,7 @@ class SmartCampusApiTest extends JerseyTest {
     }
 
     @Test
-    void roomDeleteReturnsConflictWhenSensorsAreStillLinked() {
+    void roomDeleteReturnsConflictWhenActiveSensorsAreStillLinked() {
         store.addRoom(new Room("ENG-101", "Engineering Lab", 50, List.of()));
         store.addSensor(new Sensor("CO2-001", "CO2", "ACTIVE", 420.0, "ENG-101"));
 
@@ -93,6 +93,17 @@ class SmartCampusApiTest extends JerseyTest {
         Response deleteResponse = target("rooms/ENG-102").request().delete();
         assertEquals(204, deleteResponse.getStatus());
         assertFalse(store.roomExists("ENG-102"));
+    }
+
+    @Test
+    void roomDeleteAllowsRemovalWhenOnlyNonActiveSensorsRemain() {
+        store.addRoom(new Room("ENG-103", "Engineering Storage", 10, List.of()));
+        store.addSensor(new Sensor("TEMP-003", "Temperature", "OFFLINE", 18.0, "ENG-103"));
+
+        Response deleteResponse = target("rooms/ENG-103").request().delete();
+
+        assertEquals(204, deleteResponse.getStatus());
+        assertFalse(store.roomExists("ENG-103"));
     }
 
     @Test

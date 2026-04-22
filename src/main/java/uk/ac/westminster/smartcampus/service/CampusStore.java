@@ -49,9 +49,21 @@ public class CampusStore {
         return rooms.remove(roomId) != null;
     }
 
-    public boolean roomHasSensors(String roomId) {
+    public boolean roomHasActiveSensors(String roomId) {
         Room room = rooms.get(roomId);
-        return room != null && !room.getSensorIds().isEmpty();
+        if (room == null || room.getSensorIds().isEmpty()) {
+            return false;
+        }
+
+        synchronized (room.getSensorIds()) {
+            for (String sensorId : room.getSensorIds()) {
+                Sensor sensor = sensors.get(sensorId);
+                if (sensor != null && "ACTIVE".equalsIgnoreCase(sensor.getStatus())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public List<Sensor> getAllSensors() {

@@ -66,8 +66,8 @@ public class RoomResource {
             throw new NotFoundException("Room not found.");
         }
 
-        if (store.roomHasSensors(roomId)) {
-            throw new RoomNotEmptyException("Room still has linked sensors.");
+        if (store.roomHasActiveSensors(roomId)) {
+            throw new RoomNotEmptyException("Room still has active sensors.");
         }
 
         store.deleteRoom(roomId);
