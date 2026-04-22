@@ -104,6 +104,22 @@ public class CampusStore {
         return history;
     }
 
+    public boolean readingExists(String sensorId, String readingId) {
+        List<SensorReading> sensorReadings = readings.get(sensorId);
+        if (sensorReadings == null) {
+            return false;
+        }
+
+        synchronized (sensorReadings) {
+            for (SensorReading sensorReading : sensorReadings) {
+                if (readingId.equals(sensorReading.getId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean addReading(String sensorId, SensorReading reading) {
         Sensor sensor = sensors.get(sensorId);
         if (sensor == null) {
