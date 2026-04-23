@@ -1,6 +1,6 @@
 # Smart Campus API
 
-This project is a RESTful Smart Campus backend that uses JAX-RS (Jersey) on a built-in Jetty server. The API is versioned under `/api/v1`, keeps all of its data in memory, and covers three main areas: rooms, sensors, and the reading histories for each sensor.
+This project is a RESTful Smart Campus backend that uses JAX-RS (Jersey) as a standard Java web application. The API is versioned under `/api/v1`, keeps all of its data in memory, and covers three main areas: rooms, sensors, and the reading histories for each sensor.
 
 The design follows a simple resource-oriented structure:
 
@@ -14,7 +14,7 @@ The design follows a simple resource-oriented structure:
 - Java 17 target
 - JAX-RS (`javax.ws.rs`)
 - Jersey 2.41
-- Embedded Jetty 9
+- WAR-based servlet-container deployment
 - Jackson JSON provider
 - In-memory storage using `ConcurrentHashMap` and synchronized lists
 - JUnit 5 with the Jersey Test Framework
@@ -30,23 +30,21 @@ The design follows a simple resource-oriented structure:
    .\mvnw.cmd clean test
    ```
 
-3. Start the embedded Jetty server:
+3. Package the application:
 
    ```powershell
-   .\mvnw.cmd exec:java
+   .\mvnw.cmd package
    ```
 
-4. Open the API root in a browser or HTTP client:
+4. Deploy the generated `target\ROOT.war` file to your local servlet container's `webapps` directory.
+
+5. Start the servlet container and open the API root in a browser or HTTP client:
 
    ```text
    http://localhost:8080/api/v1
    ```
 
-5. Optional: run the server on a different port:
-
-   ```powershell
-   .\mvnw.cmd "-Dsmartcampus.port=9090" exec:java
-   ```
+If your container is configured to use a different port, adjust the URL accordingly.
 
 ### macOS / Linux
 
@@ -57,17 +55,21 @@ The design follows a simple resource-oriented structure:
    ./mvnw clean test
    ```
 
-3. Start the embedded Jetty server:
+3. Package the application:
 
    ```bash
-   ./mvnw exec:java
+   ./mvnw package
    ```
 
-4. Open the API root:
+4. Deploy the generated `target/ROOT.war` file to your local servlet container's `webapps` directory.
+
+5. Start the servlet container and open the API root:
 
    ```text
    http://localhost:8080/api/v1
    ```
+
+If your container is configured to use a different port, adjust the URL accordingly.
 
 ## API Summary
 
@@ -222,11 +224,11 @@ The sub-resource locator keeps the domain model layered cleanly. `SensorResource
 
 Clients that receive raw stack traces learn a great deal about the server's internal implementation. A single leaked trace usually hands the attacker five concrete pieces of reconnaissance:
 
-- **Dependency versions** like `jersey-server 2.41` and `jetty-server 9.4.57.v20241219`. An attacker plugs those exact versions into the NVD, GitHub Advisory Database, or Snyk to look up known remote code execution, deserialization, or path-traversal vulnerabilities, then crafts a payload that matches the targeted endpoint.
+- **Dependency versions** like `jersey-server 2.41` and other deployed web libraries. An attacker plugs those exact versions into the NVD, GitHub Advisory Database, or Snyk to look up known remote code execution, deserialization, or path-traversal vulnerabilities, then crafts a payload that matches the targeted endpoint.
 - **Internal package and class names** like `uk.ac.westminster.smartcampus.service.CampusStore`. These map the codebase's internal module boundaries, surface domain concepts that can be probed for adjacent endpoints, and often suggest routes that are not documented publicly.
 - **Filesystem paths** in frames such as `at CampusStore.addSensor(CampusStore.java:135)`. These reveal the host operating system, the build layout (for example Maven's `target/classes/...`), and sometimes absolute install directories that are useful for chaining local-file-inclusion or path-traversal attacks.
 - **Logic flow**, meaning which method called which, at which line, and under which input. The attacker uses this to refine payloads that hit the same failure path deterministically, or to pivot into adjacent methods whose names hint at higher-risk operations.
-- **Framework fingerprints** like `org.glassfish.jersey.server.ContainerResponse` or Jackson's `JsonMappingException`. These confirm the exact runtime stack and narrow the relevant attack surface to Jersey-, Jackson-, and Jetty-specific vulnerabilities.
+- **Framework fingerprints** like `org.glassfish.jersey.server.ContainerResponse` or Jackson's `JsonMappingException`. These confirm the exact runtime stack and narrow the relevant attack surface to Jersey-, Jackson-, and servlet-container-specific vulnerabilities.
 
 The global `ExceptionMapper<Throwable>` prevents every one of these disclosures by replacing any unexpected failure with a sanitized `500 Internal Server Error` JSON body. No stack frames, class names, file paths, dependency versions, or framework fingerprints reach the client, so an attacker gains no reconnaissance value from deliberately triggering server-side errors.
 
