@@ -36,9 +36,25 @@ The design follows a simple resource-oriented structure:
    .\mvnw.cmd package
    ```
 
-4. Deploy the generated `target\ROOT.war` file to your local servlet container's `webapps` directory.
+4. If you are redeploying, stop the servlet container and remove the previous `ROOT` deployment from the `webapps` directory.
 
-5. Start the servlet container and open the API root in a browser or HTTP client:
+5. Copy the generated `target\ROOT.war` file into your local servlet container's `webapps` directory. For example:
+
+   ```powershell
+   Copy-Item .\target\ROOT.war "C:\xampp\tomcat\webapps\ROOT.war" -Force
+   ```
+
+6. Start the servlet container. If required, set `JAVA_HOME` and `JRE_HOME` in the current PowerShell session before running the startup command:
+
+   ```powershell
+   $env:JAVA_HOME="C:\Program Files\Java\jdk-17"
+   $env:JRE_HOME=$env:JAVA_HOME
+   $env:Path="$env:JAVA_HOME\bin;$env:Path"
+   Set-Location "C:\xampp\tomcat\bin"
+   .\catalina.bat run
+   ```
+
+7. Open the API root in a browser or HTTP client:
 
    ```text
    http://localhost:8080/api/v1
